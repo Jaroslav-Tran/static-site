@@ -87,18 +87,8 @@ function renderNav(currentPath) {
   }).join("\n          ");
 }
 
-function newsletterForm(site) {
-  const action = site.convertKitFormId
-    ? `https://app.convertkit.com/forms/${site.convertKitFormId}/subscriptions`
-    : "";
-
-  return `
-    <form class="signup-form" method="post"${action ? ` action="${action}"` : ""} data-form="newsletter">
-      <label class="sr-only" for="newsletter-email">Email address</label>
-      <input id="newsletter-email" type="email" name="email_address" placeholder="you@example.com" required>
-      <button type="submit">Subscribe</button>
-    </form>
-  `;
+function newsletterForm() {
+  return read(path.join(SRC, "templates", "newsletter.html"));
 }
 
 function contactForm(site) {
@@ -125,16 +115,38 @@ function contactForm(site) {
   `;
 }
 
+function applyTemplate(template, values) {
+  let html = template;
+  for (const [key, value] of Object.entries(values)) {
+    html = html.replaceAll(`{{${key}}}`, value ?? "");
+  }
+  return html;
+}
+
 function applyLayout(layout, site, page) {
-  return layout
-    .replaceAll("{{siteTitle}}", escapeHtml(site.title))
-    .replaceAll("{{pageTitle}}", escapeHtml(page.title))
-    .replaceAll("{{description}}", escapeHtml(page.description || site.description))
-    .replaceAll("{{nav}}", renderNav(page.path))
-    .replaceAll("{{content}}", page.body)
-    .replaceAll("{{newsletterForm}}", newsletterForm(site))
-    .replaceAll("{{year}}", String(new Date().getFullYear()))
-    .replaceAll("{{bodyClass}}", page.bodyClass || "");
+  const html = applyTemplate(layout, {
+    siteTitle: escapeHtml(site.title),
+    pageTitle: escapeHtml(page.title),
+    description: escapeHtml(page.description || site.description),
+    nav: renderNav(page.path),
+    content: page.body,
+    newsletterForm: newsletterForm(),
+    year: String(new Date().getFullYear()),
+    bodyClass: page.bodyClass || "",
+  });
+  return prefixSiteUrls(html, site.basePath);
+}
+
+function siteBasePath(site) {
+  const fromEnv = process.env.BASE_PATH;
+  const raw = fromEnv == null || fromEnv === "" ? site.basePath || "" : fromEnv;
+  return String(raw).replace(/\/$/, "");
+}
+
+function prefixSiteUrls(html, basePath) {
+  const base = String(basePath || "").replace(/\/$/, "");
+  if (!base) return html;
+  return html.replace(/(href|src|action)="\/(?!\/)/g, `$1="${base}/`);
 }
 
 function loadMarkdown(filePath) {
@@ -146,33 +158,7 @@ function loadMarkdown(filePath) {
   };
 }
 
-function latestPostsHtml(posts) {
-  const items = posts
-    .slice(0, 3)
-    .map(
-      (post) => `
-        <li>
-          <a href="/blog/${post.slug}/">
-            <span class="post-date">${escapeHtml(formatDate(post.date))}</span>
-            <strong>${escapeHtml(post.title)}</strong>
-            <span>${escapeHtml(post.description || "")}</span>
-          </a>
-        </li>`,
-    )
-    .join("");
-
-  return `
-    <section class="latest-posts">
-      <div class="section-heading">
-        <h2>Latest from the blog</h2>
-        <a href="/blog/">See all posts</a>
-      </div>
-      <ul class="post-list">${items}</ul>
-    </section>
-  `;
-}
-
-function blogIndexHtml(posts) {
+function blogIndexHtml(template, posts) {
   const items = posts
     .map(
       (post) => `
@@ -186,20 +172,14 @@ function blogIndexHtml(posts) {
     )
     .join("");
 
-  return `
-    <article class="page">
-      <h1>Blog</h1>
-      <p class="lede">Notes, updates, and longer writing.</p>
-      <ul class="post-list">${items}</ul>
-    </article>
-  `;
+  return applyTemplate(template, { posts: items });
 }
 
 function pageBody(page) {
   const title = page.showTitle === false ? "" : `<h1>${escapeHtml(page.title)}</h1>`;
   const extra = page.extraHtml || "";
   return `
-    <article class="page">
+    <article class="page wrap">
       ${title}
       <div class="prose">${page.contentHtml}</div>
       ${extra}
@@ -207,14 +187,14 @@ function pageBody(page) {
   `;
 }
 
-function postBody(post) {
-  return `
-    <article class="page post">
-      <p class="meta"><a href="/blog/">Blog</a> · <time datetime="${escapeHtml(isoDate(post.date))}">${escapeHtml(formatDate(post.date))}</time></p>
-      <h1>${escapeHtml(post.title)}</h1>
-      <div class="prose">${post.contentHtml}</div>
-    </article>
-  `;
+function postBody(template, post) {
+  return applyTemplate(template, {
+    title: escapeHtml(post.title),
+    description: escapeHtml(post.description || ""),
+    date: escapeHtml(formatDate(post.date)),
+    isoDate: escapeHtml(isoDate(post.date)),
+    content: post.contentHtml,
+  });
 }
 
 function collectPosts() {
@@ -228,30 +208,41 @@ function collectPosts() {
 
 function build() {
   const site = JSON.parse(read(path.join(SRC, "site.json")));
+  site.basePath = siteBasePath(site);
   const layout = read(path.join(SRC, "templates", "layout.html"));
+  const blogTemplate = read(path.join(SRC, "templates", "blog.html"));
+  const blogIndexTemplate = read(path.join(SRC, "templates", "blog-index.html"));
   const posts = collectPosts();
 
   emptyDir(DIST);
   copyDir(path.join(SRC, "styles"), path.join(DIST, "styles"));
   copyDir(path.join(SRC, "js"), path.join(DIST, "js"));
   copyDir(path.join(SRC, "static"), DIST);
+  write(path.join(DIST, ".nojekyll"), "");
+
+  write(
+    path.join(DIST, "index.html"),
+    applyLayout(layout, site, {
+      title: site.title,
+      description: site.description,
+      path: "/",
+      bodyClass: "home",
+      body: read(path.join(SRC, "index.html")),
+    }),
+  );
 
   const pagesDir = path.join(SRC, "content", "pages");
   for (const name of fs.readdirSync(pagesDir).filter((file) => file.endsWith(".md"))) {
     const page = loadMarkdown(path.join(pagesDir, name));
-    const isHome = page.slug === "index";
-    const extraHtml = isHome ? latestPostsHtml(posts) : page.slug === "contact" ? contactForm(site) : "";
+    const extraHtml = page.slug === "contact" ? contactForm(site) : "";
     const html = applyLayout(layout, site, {
-      title: isHome ? site.title : page.title,
+      title: page.title,
       description: page.description,
-      path: isHome ? "/" : `/${page.slug}/`,
-      bodyClass: isHome ? "home" : "",
+      path: `/${page.slug}/`,
+      bodyClass: "inner",
       body: pageBody({ ...page, extraHtml }),
     });
-    const outFile = isHome
-      ? path.join(DIST, "index.html")
-      : path.join(DIST, page.slug, "index.html");
-    write(outFile, html);
+    write(path.join(DIST, page.slug, "index.html"), html);
   }
 
   write(
@@ -260,7 +251,8 @@ function build() {
       title: "Blog",
       description: "Notes, updates, and longer writing.",
       path: "/blog/",
-      body: blogIndexHtml(posts),
+      bodyClass: "inner",
+      body: blogIndexHtml(blogIndexTemplate, posts),
     }),
   );
 
@@ -271,7 +263,8 @@ function build() {
         title: post.title,
         description: post.description,
         path: `/blog/${post.slug}/`,
-        body: postBody(post),
+        bodyClass: "inner",
+        body: postBody(blogTemplate, post),
       }),
     );
   }
@@ -348,6 +341,7 @@ function watchSources() {
     fs.watch(dir, schedule);
   }
   fs.watch(path.join(SRC, "site.json"), schedule);
+  fs.watch(path.join(SRC, "index.html"), schedule);
 }
 
 build();

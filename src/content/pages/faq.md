@@ -20,7 +20,7 @@ description: Short answers to common questions about this site.
 
 <details>
   <summary>How does the newsletter form work?</summary>
-  Put your ConvertKit form ID in <code>src/site.json</code>. Until that is set, the form will remind you to add it.
+  The footer form is HTML in <code>src/templates/newsletter.html</code>. It posts to Kit. Edit that file to change the field, button, or copy. The header button <code>Join the Newsletter</code> jumps to that section.
 </details>
 
 <details>

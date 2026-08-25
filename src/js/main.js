@@ -1,5 +1,7 @@
 const nav = document.querySelector(".site-nav");
 const toggle = document.querySelector(".nav-toggle");
+const searchToggle = document.querySelector(".search-toggle");
+const searchPanel = document.querySelector(".search-panel");
 
 if (toggle && nav) {
   toggle.addEventListener("click", () => {
@@ -8,13 +10,26 @@ if (toggle && nav) {
   });
 }
 
+for (const dropdown of document.querySelectorAll(".nav-dropdown")) {
+  const button = dropdown.querySelector(".nav-dropdown-toggle");
+  if (!button) continue;
+  button.addEventListener("click", () => {
+    const open = dropdown.classList.toggle("is-open");
+    button.setAttribute("aria-expanded", String(open));
+  });
+}
+
+if (searchToggle && searchPanel) {
+  searchToggle.addEventListener("click", () => {
+    const willShow = searchPanel.hasAttribute("hidden");
+    searchPanel.toggleAttribute("hidden", !willShow);
+    searchToggle.setAttribute("aria-expanded", String(willShow));
+    if (willShow) searchPanel.querySelector("input")?.focus();
+  });
+}
+
 function notConfigured(form) {
-  const kind = form.dataset.form;
-  const message =
-    kind === "newsletter"
-      ? "Add your ConvertKit form ID to src/site.json, then rebuild."
-      : "Add your Formspree ID to src/site.json, then rebuild.";
-  window.alert(message);
+  window.alert("Add your Formspree ID to src/site.json, then rebuild.");
 }
 
 for (const form of document.querySelectorAll("form[data-form]")) {
