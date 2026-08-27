@@ -13,10 +13,18 @@ const PORT = 3000;
 
 const NAV = [
   { label: "Home", href: "/" },
-  { label: "Blog", href: "/blog/" },
+  { label: "Advisory", href: "/advisory/" },
+  { label: "Field Notes", href: "/field-notes/" },
   { label: "About", href: "/about/" },
-  { label: "FAQ", href: "/faq/" },
   { label: "Contact", href: "/contact/" },
+];
+
+const FIELD_NOTE_CATEGORIES = [
+  { name: "Essays", slug: "essays" },
+  { name: "Book Notes", slug: "book-notes" },
+  { name: "Reviews", slug: "reviews" },
+  { name: "The Lab", slug: "the-lab" },
+  { name: "Life", slug: "life" },
 ];
 
 function read(filePath) {
@@ -206,6 +214,155 @@ function collectPosts() {
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
+function findCategory(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  return (
+    FIELD_NOTE_CATEGORIES.find((item) => item.name.toLowerCase() === raw || item.slug === raw) ||
+    null
+  );
+}
+
+function normalizeTags(tags) {
+  if (!tags) return [];
+  const list = Array.isArray(tags) ? tags : String(tags).split(",");
+  return list.map((tag) => String(tag).trim()).filter(Boolean);
+}
+
+function collectFieldNotes() {
+  const notesDir = path.join(SRC, "content", "field-notes");
+  fs.mkdirSync(notesDir, { recursive: true });
+  return fs
+    .readdirSync(notesDir)
+    .filter((name) => name.endsWith(".md"))
+    .map((name) => {
+      const note = loadMarkdown(path.join(notesDir, name));
+      const category = findCategory(note.category);
+      if (!category) {
+        throw new Error(
+          `${name}: category must be one of ${FIELD_NOTE_CATEGORIES.map((item) => item.name).join(", ")}`,
+        );
+      }
+      return {
+        ...note,
+        category: category.name,
+        categorySlug: category.slug,
+        tags: normalizeTags(note.tags),
+        url: `/field-notes/${category.slug}/${note.slug}/`,
+      };
+    })
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+function categoryNavHtml(currentSlug) {
+  const links = [
+    `<a class="${currentSlug ? "" : "is-current"}" href="/field-notes/">All</a>`,
+    ...FIELD_NOTE_CATEGORIES.map(
+      (item) =>
+        `<a class="${item.slug === currentSlug ? "is-current" : ""}" href="/field-notes/${item.slug}/">${escapeHtml(item.name)}</a>`,
+    ),
+  ];
+  return `<nav class="category-nav">${links.join("")}</nav>`;
+}
+
+function fieldNoteListHtml(notes) {
+  if (!notes.length) {
+    return `<p class="lede">No notes in this category yet.</p>`;
+  }
+  return `<ul class="post-list">${notes
+    .map(
+      (note) => `
+        <li>
+          <a href="${note.url}">
+            <span class="post-date">${escapeHtml(formatDate(note.date))} · ${escapeHtml(note.category)}</span>
+            <strong>${escapeHtml(note.title)}</strong>
+            <span>${escapeHtml(note.description || "")}</span>
+          </a>
+        </li>`,
+    )
+    .join("")}</ul>`;
+}
+
+function fieldNoteIndexBody(template, { title, lede, currentSlug, notes }) {
+  return applyTemplate(template, {
+    title: escapeHtml(title),
+    lede: escapeHtml(lede),
+    categoryNav: categoryNavHtml(currentSlug),
+    posts: fieldNoteListHtml(notes),
+  });
+}
+
+function fieldNotePostBody(template, note) {
+  const tags = note.tags.length
+    ? `<p class="post-tags">${note.tags.map((tag) => escapeHtml(tag)).join(" · ")}</p>`
+    : "";
+  return applyTemplate(template, {
+    title: escapeHtml(note.title),
+    description: escapeHtml(note.description || ""),
+    date: escapeHtml(formatDate(note.date)),
+    isoDate: escapeHtml(isoDate(note.date)),
+    category: escapeHtml(note.category),
+    categorySlug: note.categorySlug,
+    tags,
+    content: note.contentHtml,
+  });
+}
+
+function buildFieldNotes(layout, site) {
+  const indexTemplate = read(path.join(SRC, "templates", "field-notes-index.html"));
+  const postTemplate = read(path.join(SRC, "templates", "field-notes-post.html"));
+  const notes = collectFieldNotes();
+
+  write(
+    path.join(DIST, "field-notes", "index.html"),
+    applyLayout(layout, site, {
+      title: "Field Notes",
+      description: "Essays, reviews, and notes from a curious life.",
+      path: "/field-notes/",
+      bodyClass: "inner",
+      body: fieldNoteIndexBody(indexTemplate, {
+        title: "Field Notes",
+        lede: "Essays, book notes, reviews, experiments, and life — filed as they happen.",
+        currentSlug: "",
+        notes,
+      }),
+    }),
+  );
+
+  for (const category of FIELD_NOTE_CATEGORIES) {
+    const inCategory = notes.filter((note) => note.categorySlug === category.slug);
+    write(
+      path.join(DIST, "field-notes", category.slug, "index.html"),
+      applyLayout(layout, site, {
+        title: category.name,
+        description: `${category.name} in Field Notes.`,
+        path: `/field-notes/${category.slug}/`,
+        bodyClass: "inner",
+        body: fieldNoteIndexBody(indexTemplate, {
+          title: category.name,
+          lede: `Notes in ${category.name}.`,
+          currentSlug: category.slug,
+          notes: inCategory,
+        }),
+      }),
+    );
+  }
+
+  for (const note of notes) {
+    write(
+      path.join(DIST, "field-notes", note.categorySlug, note.slug, "index.html"),
+      applyLayout(layout, site, {
+        title: note.title,
+        description: note.description,
+        path: note.url,
+        bodyClass: "inner",
+        body: fieldNotePostBody(postTemplate, note),
+      }),
+    );
+  }
+
+  return notes.length;
+}
+
 function build() {
   const site = JSON.parse(read(path.join(SRC, "site.json")));
   site.basePath = siteBasePath(site);
@@ -217,6 +374,7 @@ function build() {
   emptyDir(DIST);
   copyDir(path.join(SRC, "styles"), path.join(DIST, "styles"));
   copyDir(path.join(SRC, "js"), path.join(DIST, "js"));
+  copyDir(path.join(SRC, "assets"), path.join(DIST, "assets"));
   copyDir(path.join(SRC, "static"), DIST);
   write(path.join(DIST, ".nojekyll"), "");
 
@@ -234,6 +392,7 @@ function build() {
   const pagesDir = path.join(SRC, "content", "pages");
   for (const name of fs.readdirSync(pagesDir).filter((file) => file.endsWith(".md"))) {
     const page = loadMarkdown(path.join(pagesDir, name));
+    if (page.slug === "field-notes") continue;
     const extraHtml = page.slug === "contact" ? contactForm(site) : "";
     const html = applyLayout(layout, site, {
       title: page.title,
@@ -269,7 +428,9 @@ function build() {
     );
   }
 
-  console.log(`Built ${posts.length} posts and the site pages into dist/`);
+  const fieldNoteCount = buildFieldNotes(layout, site);
+
+  console.log(`Built ${posts.length} blog posts, ${fieldNoteCount} field notes, and the site pages into dist/`);
 }
 
 function contentType(filePath) {
@@ -328,13 +489,17 @@ function watchSources() {
     }, 150);
   };
 
+  fs.mkdirSync(path.join(SRC, "content", "field-notes"), { recursive: true });
+
   const dirs = [
     path.join(SRC, "content", "pages"),
     path.join(SRC, "content", "blog"),
+    path.join(SRC, "content", "field-notes"),
     path.join(SRC, "templates"),
     path.join(SRC, "styles"),
     path.join(SRC, "js"),
     path.join(SRC, "static"),
+    path.join(SRC, "assets"),
   ];
 
   for (const dir of dirs) {

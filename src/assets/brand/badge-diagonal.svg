@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 320">
+  <defs>
+    <path id="tagArc2" d="M 34.4 137.9 A 123 123 0 0 1 265.6 137.9" fill="none"/>
+  </defs>
+  <text font-family="'Caveat', cursive" font-weight="500" font-size="21" fill="#000000">
+    <textPath href="#tagArc2" startOffset="50%" text-anchor="middle">Field notes from a curious life</textPath>
+  </text>
+  <circle cx="150" cy="180" r="95" fill="none" stroke="#000000" stroke-width="2.5"/>
+  <g transform="rotate(-45 150 180)">
+    <line x1="135" y1="165" x2="135" y2="195" stroke="#000000" stroke-width="7" stroke-linecap="round"/>
+    <line x1="150" y1="148" x2="150" y2="212" stroke="#1CA9C9" stroke-width="7" stroke-linecap="round"/>
+    <line x1="165" y1="165" x2="165" y2="195" stroke="#000000" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <text x="107.6" y="222.4" text-anchor="middle" dominant-baseline="central" font-family="'Poppins', sans-serif" font-weight="700" font-size="40" fill="#000000">J</text>
+  <text x="192.4" y="137.6" text-anchor="middle" dominant-baseline="central" font-family="'Poppins', sans-serif" font-weight="700" font-size="40" fill="#000000">T</text>
+</svg>

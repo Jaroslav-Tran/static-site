@@ -1,15 +1,27 @@
 :root {
-  --bg: #fff;
-  --bg-muted: #f3f3f3;
-  --ink: #111;
-  --muted: #5c5c5c;
-  --line: #e6e6e6;
-  --accent: #f04e23;
-  --accent-hover: #d4431c;
+  --bg: #FAF6F0;
+  --bg-dark: #161513;
+  --text: #1E1B18;
+  --text-dark: #F5F1EA;
+  --text-secondary: #6B6660;
+  --accent: #1CA9C9;
+  --accent-deep: #0E7A93;
+  --line: #E8E0D4;
+  --ink: var(--text);
+  --muted: var(--text-secondary);
+  --accent-hover: var(--accent-deep);
+  --bg-muted: color-mix(in srgb, var(--line) 40%, var(--bg));
   --primary: "Poppins", sans-serif;
   --sans: "Figtree", "Segoe UI", sans-serif;
   --content: 42rem;
   --wide: 72rem;
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  --bg: #161513;
+  --text: #F5F1EA;
+  color-scheme: dark;
 }
 
 * {
@@ -42,6 +54,7 @@ h4,
 .logos-label,
 .section-kicker,
 .footer-grid h3,
+.category-nav,
 summary {
   font-family: var(--primary);
 }
@@ -70,7 +83,7 @@ a:hover {
   left: 1rem;
   top: -4rem;
   background: var(--ink);
-  color: white;
+  color: var(--bg);
   padding: 0.5rem 0.8rem;
 }
 
@@ -93,7 +106,7 @@ a:hover {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: #fff;
+  background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
 
@@ -108,23 +121,32 @@ a:hover {
 .logo {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
   color: var(--ink);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: 0.95rem;
 }
 
 .logo:hover {
   color: var(--ink);
 }
 
-.logo-mark {
-  width: 1.15rem;
-  height: 1.15rem;
-  border-radius: 50%;
-  background: var(--accent);
+.logo img {
+  height: 2.25rem;
+  width: auto;
+}
+
+.logo .logo-light {
+  display: block;
+}
+
+.logo .logo-dark {
+  display: none;
+}
+
+html[data-theme="dark"] .logo .logo-light {
+  display: none;
+}
+
+html[data-theme="dark"] .logo .logo-dark {
+  display: block;
 }
 
 .site-nav {
@@ -154,13 +176,22 @@ a:hover {
   position: relative;
 }
 
+.nav-dropdown-toggle::after {
+  content: "";
+  display: inline-block;
+  margin-left: 0.35rem;
+  border: 0.28rem solid transparent;
+  border-top-color: currentColor;
+  transform: translateY(0.18rem);
+}
+
 .nav-dropdown-menu {
   display: none;
   position: absolute;
   top: calc(100% + 0.7rem);
   left: 0;
   min-width: 10rem;
-  background: #fff;
+  background: var(--bg);
   border: 1px solid var(--line);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
   padding: 0.6rem 0;
@@ -185,13 +216,44 @@ a:hover {
   margin-left: 0.4rem;
 }
 
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  padding: 0.2rem;
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  color: var(--ink);
+}
+
+.theme-toggle svg {
+  display: block;
+}
+
+.theme-toggle .icon-sun {
+  display: none;
+}
+
+html[data-theme="dark"] .theme-toggle .icon-sun {
+  display: block;
+}
+
+html[data-theme="dark"] .theme-toggle .icon-moon {
+  display: none;
+}
+
 .search-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 0;
   background: none;
-  color: #888;
+  color: var(--muted);
   padding: 0.2rem;
   cursor: pointer;
 }
@@ -218,7 +280,7 @@ a:hover {
 .nav-toggle {
   display: none;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--bg);
   color: var(--ink);
   padding: 0.4rem 0.75rem;
   font: inherit;
@@ -233,7 +295,7 @@ a:hover {
   border: 0;
   border-radius: 2px;
   background: var(--ink);
-  color: #fff;
+  color: var(--bg);
   padding: 0.7rem 1.05rem;
   font: inherit;
   font-weight: 700;
@@ -246,13 +308,14 @@ a:hover {
 .button:hover,
 .signup-form button:hover,
 .contact-form button:hover {
-  color: #fff;
+  color: var(--text-dark);
   background: var(--accent-hover);
 }
 
 .button-accent,
 .signup-form .button-accent {
   background: var(--accent);
+  color: var(--text-dark);
 }
 
 .button-lg {
@@ -317,7 +380,7 @@ a:hover {
 
 .prose p,
 .prose li {
-  color: #2b2b2b;
+  color: var(--ink);
 }
 
 .prose a {
@@ -333,8 +396,8 @@ a:hover {
 }
 
 .prose pre {
-  background: #111;
-  color: #f4f4f4;
+  background: var(--ink);
+  color: var(--bg);
   padding: 1rem 1.1rem;
   overflow-x: auto;
 }
@@ -380,7 +443,7 @@ a:hover {
   position: relative;
   min-height: 22rem;
   background:
-    linear-gradient(90deg, var(--bg-muted) 0%, rgba(243, 243, 243, 0) 28%),
+    linear-gradient(90deg, var(--bg-muted) 0%, transparent 28%),
     #44553d;
   overflow: hidden;
 }
@@ -401,7 +464,7 @@ a:hover {
 
 .logos-label {
   margin: 0 0 1.3rem;
-  color: #9a9a9a;
+  color: var(--muted);
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -416,7 +479,7 @@ a:hover {
   gap: 1.2rem 2.4rem;
   margin: 0;
   padding: 0;
-  color: #b0b0b0;
+  color: var(--muted);
   font-size: 1.05rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -457,7 +520,7 @@ a:hover {
 .offer-card,
 .resource-grid article,
 .story-grid blockquote {
-  background: #fff;
+  background: var(--bg);
   border: 1px solid var(--line);
   padding: 1.5rem 1.4rem;
   margin: 0;
@@ -530,6 +593,30 @@ a:hover {
   color: var(--muted);
 }
 
+.category-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1.1rem;
+  margin: 1.2rem 0 0;
+}
+
+.category-nav a {
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.category-nav a:hover,
+.category-nav a.is-current {
+  color: var(--accent);
+}
+
+.post-tags {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin: 0 0 1.2rem;
+}
+
 .contact-form,
 .signup-form {
   display: grid;
@@ -558,7 +645,7 @@ a:hover {
   margin: 0;
   padding: 0.75rem 0.9rem;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--bg);
   color: var(--ink);
   font: inherit;
   border-radius: 2px;
@@ -604,7 +691,8 @@ a:hover {
 .search-panel input {
   margin-top: 0.35rem;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--bg);
+  color: var(--ink);
   border-radius: 2px;
   padding: 0.75rem 0.9rem;
 }
@@ -617,7 +705,7 @@ a:hover {
 .site-footer {
   border-top: 1px solid var(--line);
   padding: 0 0 2.5rem;
-  background: #fff;
+  background: var(--bg);
 }
 
 .newsletter-band {
@@ -714,7 +802,7 @@ summary {
     left: 1.25rem;
     right: 1.25rem;
     top: 4.6rem;
-    background: #fff;
+    background: var(--bg);
     border: 1px solid var(--line);
     padding: 1rem;
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
@@ -735,6 +823,7 @@ summary {
     border: 0;
     box-shadow: none;
     padding: 0.4rem 0 0 0.8rem;
+    display: block;
   }
 
   .signup-form,

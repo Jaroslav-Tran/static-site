@@ -39,3 +39,26 @@ for (const form of document.querySelectorAll("form[data-form]")) {
     notConfigured(form);
   });
 }
+
+const themeToggle = document.querySelector(".theme-toggle");
+const root = document.documentElement;
+
+function currentTheme() {
+  return root.getAttribute("data-theme") === "dark" ? "dark" : "light";
+}
+
+function applyTheme(theme) {
+  root.setAttribute("data-theme", theme);
+  localStorage.setItem("theme", theme);
+  if (!themeToggle) return;
+  const dark = theme === "dark";
+  themeToggle.setAttribute("aria-pressed", String(dark));
+  themeToggle.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+}
+
+if (themeToggle) {
+  applyTheme(currentTheme());
+  themeToggle.addEventListener("click", () => {
+    applyTheme(currentTheme() === "dark" ? "light" : "dark");
+  });
+}
