@@ -123,10 +123,11 @@ function contactForm(site) {
   `;
 }
 
-function applyTemplate(template, values) {
+export function applyTemplate(template, values) {
   let html = template;
   for (const [key, value] of Object.entries(values)) {
-    html = html.replaceAll(`{{${key}}}`, value ?? "");
+    const replacement = value ?? "";
+    html = html.replaceAll(`{{${key}}}`, () => replacement);
   }
   return html;
 }
@@ -509,9 +510,14 @@ function watchSources() {
   fs.watch(path.join(SRC, "index.html"), schedule);
 }
 
-build();
+const isDirectRun =
+  Boolean(process.argv[1]) &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
-if (process.argv.includes("--watch")) {
-  startServer();
-  watchSources();
+if (isDirectRun) {
+  build();
+  if (process.argv.includes("--watch")) {
+    startServer();
+    watchSources();
+  }
 }
